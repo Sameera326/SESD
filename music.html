@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Music Streaming App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #1DB954;
+    }
+
+    .song-list, .playlist {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .song {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #2a2a2a;
+      border-radius: 5px;
+    }
+
+    button {
+      background-color: #1DB954;
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      text-align: center;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎶 Music Streaming App</h1>
+
+  <div class="song-list">
+    <h2>Available Songs</h2>
+    <div class="song">
+      <span>Song One</span>
+      <div>
+        <button onclick="playSong('song1.mp3')">Play</button>
+        <button onclick="addToPlaylist('Song One', 'song1.mp3')">Add to Playlist</button>
+      </div>
+    </div>
+    <div class="song">
+      <span>Song Two</span>
+      <div>
+        <button onclick="playSong('song2.mp3')">Play</button>
+        <button onclick="addToPlaylist('Song Two', 'song2.mp3')">Add to Playlist</button>
+      </div>
+    </div>
+    <div class="song">
+      <span>Song Three</span>
+      <div>
+        <button onclick="playSong('song3.mp3')">Play</button>
+        <button onclick="addToPlaylist('Song Three', 'song3.mp3')">Add to Playlist</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="playlist">
+    <h2>Your Playlist</h2>
+    <div id="playlist-container"></div>
+  </div>
+
+  <h2>Now Playing</h2>
+  <audio id="audio-player" controls>
+    <source id="audio-source" src="" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <script>
+    function playSong(src) {
+      const audioPlayer = document.getElementById('audio-player');
+      const audioSource = document.getElementById('audio-source');
+      audioSource.src = src;
+      audioPlayer.load();
+      audioPlayer.play();
+    }
+
+    function addToPlaylist(name, src) {
+      const container = document.getElementById('playlist-container');
+      const songDiv = document.createElement('div');
+      songDiv.className = 'song';
+      songDiv.innerHTML = `
+        <span>${name}</span>
+        <button onclick="playSong('${src}')">Play</button>
+      `;
+      container.appendChild(songDiv);
+    }
+  </script>
+
+</body>
+</html>
