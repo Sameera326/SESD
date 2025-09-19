@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Banking Demo — OOP & Patterns</title>
+  <style>
+    :root{font-family:Inter, Roboto, Arial; --card-bg:#ffffff; --accent:#2b6cb0}
+    body{background:#f3f6fb;color:#222;margin:0;padding:28px;}
+    .container{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px}
+    h1{margin:0;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:20px}
+    .card{background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(12,34,63,0.06)}
+    label{display:block;font-size:13px;margin-top:8px}
+    select,input{width:100%;padding:8px;border-radius:6px;border:1px solid #e6eef7;margin-top:6px}
+    button{padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer;margin-top:10px}
+    .small{font-size:13px;color:#666}
+    .row{display:flex;gap:8px}
+    .balances{display:flex;gap:12px;flex-wrap:wrap}
+    .balance-box{padding:12px;border-radius:10px;background:#f7fbff;min-width:170px}
+    .notifications{max-height:220px;overflow:auto;padding:8px;background:#0f172433;border-radius:8px;margin-top:8px}
+    .note{padding:6px;border-radius:6px;background:#eaf2ff;margin-bottom:6px;font-size:13px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .muted{color:#7b8aa3;font-size:13px}
+    footer{margin-top:18px;font-size:13px;color:#445}
+    .cmd-log{max-height:120px;overflow:auto;padding:8px;background:#fff;border-radius:8px;border:1px dashed #e6eef7}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Banking App — Encapsulation • Inheritance • Polymorphism</h1>
+      <div class="small muted">Patterns: Observer • Strategy • Command</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Accounts</h3>
+
+        <div class="row">
+          <div style="flex:1">
+            <label>Account</label>
+            <select id="accountSelect"></select>
+          </div>
+          <div style="width:140px">
+            <label>Type</label>
+            <select id="typeSelect">
+              <option value="savings">Savings</option>
+              <option value="fd">Fixed Deposit</option>
+              <option value="current">Current</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Initial Balance</label>
+        <input id="initBalance" type="number" value="1000" />
+        <div class="row">
+          <button id="createAccBtn">Create Account</button>
+          <button id="calcInterestBtn">Calculate Interest</button>
+        </div>
+
+        <h4 style="margin-top:14px">Transactions</h4>
+        <label>Amount</label>
+        <input id="amountInput" type="number" value="100" />
+
+        <div class="actions">
+          <button id="depositBtn">Deposit</button>
+          <button id="withdrawBtn">Withdraw</button>
+          <button id="transferBtn">Transfer →</button>
+          <button id="undoBtn" style="background:#f56565">Undo</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Transfer To</label>
+          <select id="transferTo"></select>
+        </div>
+
+        <h4 style="margin-top:12px">Command Log</h4>
+        <div class="cmd-log" id="cmdLog"></div>
+
+      </section>
+
+      <aside class="card">
+        <h3>Observers & Balances</h3>
+        <div class="balances" id="balances"></div>
+
+        <h4 style="margin-top:12px">Notifications</h4>
+        <div class="notifications" id="notifications"></div>
+
+        <h4 style="margin-top:12px">Customers</h4>
+        <div class="small muted">Observers (receive notifications)</div>
+        <div style="margin-top:8px">
+          <input id="custName" placeholder="Customer name" />
+          <button id="addCustBtn">Add & Subscribe</button>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="card">
+      <div class="small">This single-file demo implements:</div>
+      <ul>
+        <li class="small">Encapsulation: account balances held privately inside classes.</li>
+        <li class="small">Inheritance & Polymorphism: different account types with their own interest calculation strategy.</li>
+        <li class="small">Observer: Customers subscribed to accounts receive notifications.</li>
+        <li class="small">Strategy: interest calculation strategies (Savings/FD/Current).</li>
+        <li class="small">Command: deposit/withdraw/transfer with undo.</li>
+      </ul>
+    </footer>
+  </div>
+
+  <script>
+    // ----------------------------
+    // Observer
+    // ----------------------------
+    class Customer {
+      constructor(name){ this.name = name }
+      update(msg){ // receives notifications
+        appendNotification(`${this.name}: ${msg}`)
+      }
+    }
+
+    // ----------------------------
+    // Strategy: Interest strategies
+    // ----------------------------
+    class InterestStrategy { calculate(balance){ return 0 } }
+    class SavingsInterest extends InterestStrategy { calculate(b){ return b * 0.03 } }
+    class FDInterest extends InterestStrategy { calculate(b){ return b * 0.06 } }
+    class CurrentInterest extends InterestStrategy { calculate(b){ return b * 0.01 } }
+
+    // ----------------------------
+    // Account (encapsulation, inheritance)
+    // ----------------------------
+    class Account {
+      // use private field for encapsulation
+      #balance = 0
+      constructor(number, balance=0){
+        this.number = number
+        this.#balance = balance
+        this.observers = []
+        this.interestStrategy = new SavingsInterest()
+      }
+      addObserver(obs){ this.observers.push(obs) }
+      notify(msg){ this.observers.forEach(o=>o.update(msg)) }
+      deposit(amount){ this.#balance += amount; this.notify(`Deposited \u20B9${amount}. Balance: \u20B9${this.getBalance()}`) }
+      withdraw(amount){
+        if(amount <= this.#balance){ this.#balance -= amount; this.notify(`Withdrew \u20B9${amount}. Balance: \u20B9${this.getBalance()}`); return true }
+        this.notify(`Withdrawal failed (insufficient funds). Attempted: \u20B9${amount}`)
+        return false
+      }
+      getBalance(){ return Number(this.#balance.toFixed(2)) }
+      // polymorphic entrypoint
+      calculateInterest(){ return this.interestStrategy.calculate(this.getBalance()) }
+      setStrategy(strategy){ this.interestStrategy = strategy }
+    }
+
+    class SavingsAccount extends Account { constructor(num,b=0){ super(num,b); this.setStrategy(new SavingsInterest()) } }
+    class FDAccount extends Account { constructor(num,b=0){ super(num,b); this.setStrategy(new FDInterest()) } }
+    class CurrentAccount extends Account { constructor(num,b=0){ super(num,b); this.setStrategy(new CurrentInterest()) } }
+
+    // ----------------------------
+    // Command Pattern
+    // ----------------------------
+    class Command { execute(){} undo(){} }
+    class DepositCommand extends Command {
+      constructor(account, amount){ super(); this.account = account; this.amount = amount }
+      execute(){ this.account.deposit(this.amount) }
+      undo(){ this.account.withdraw(this.amount) }
+      toString(){ return `Deposit \u20B9${this.amount} on ${this.account.number}` }
+    }
+    class WithdrawCommand extends Command {
+      constructor(account, amount){ super(); this.account = account; this.amount = amount; this._succeeded = false }
+      execute(){ this._succeeded = this.account.withdraw(this.amount) }
+      undo(){ if(this._succeeded) this.account.deposit(this.amount) }
+      toString(){ return `Withdraw \u20B9${this.amount} from ${this.account.number}` }
+    }
+    class TransferCommand extends Command {
+      constructor(fromAcc,toAcc,amount){ super(); this.from = fromAcc; this.to = toAcc; this.amount = amount; this._succeeded = false }
+      execute(){ if(this.from.getBalance() >= this.amount){ this.from.withdraw(this.amount); this.to.deposit(this.amount); this._succeeded=true } }
+      undo(){ if(this._succeeded && this.to.getBalance()>=this.amount){ this.to.withdraw(this.amount); this.from.deposit(this.amount); } }
+      toString(){ return `Transfer \u20B9${this.amount} ${this.from.number} → ${this.to.number}` }
+    }
+
+    // Command Manager with undo stack
+    const CommandManager = {
+      stack: [],
+      execute(cmd){ cmd.execute(); this.stack.push(cmd); logCmd(cmd.toString()) },
+      undo(){ const cmd = this.stack.pop(); if(cmd){ cmd.undo(); logCmd(`UNDO: ${cmd.toString()}`) } else { logCmd('Nothing to undo') } }
+    }
+
+    // ----------------------------
+    // UI + App state
+    // ----------------------------
+    const accounts = []
+    const customers = []
+
+    const els = {
+      accountSelect: document.getElementById('accountSelect'),
+      transferTo: document.getElementById('transferTo'),
+      balances: document.getElementById('balances'),
+      notifications: document.getElementById('notifications'),
+      createAccBtn: document.getElementById('createAccBtn'),
+      addCustBtn: document.getElementById('addCustBtn'),
+      custName: document.getElementById('custName'),
+      initBalance: document.getElementById('initBalance'),
+      typeSelect: document.getElementById('typeSelect'),
+      amountInput: document.getElementById('amountInput'),
+      depositBtn: document.getElementById('depositBtn'),
+      withdrawBtn: document.getElementById('withdrawBtn'),
+      transferBtn: document.getElementById('transferBtn'),
+      undoBtn: document.getElementById('undoBtn'),
+      cmdLog: document.getElementById('cmdLog'),
+      calcInterestBtn: document.getElementById('calcInterestBtn')
+    }
+
+    function createAccount(){
+      const idx = accounts.length + 1
+      const type = els.typeSelect.value
+      const bal = Number(els.initBalance.value) || 0
+      const num = `${type.slice(0,3).toUpperCase()}_${1000+idx}`
+      let acc
+      if(type === 'savings') acc = new SavingsAccount(num, bal)
+      else if(type === 'fd') acc = new FDAccount(num, bal)
+      else acc = new CurrentAccount(num, bal)
+
+      // attach existing customers as observers for demo
+      customers.forEach(c => acc.addObserver(c))
+
+      accounts.push(acc)
+      refreshUI()
+      appendNotification(`Account ${num} created with balance \u20B9${bal}`)
+    }
+
+    function refreshUI(){
+      // account selects
+      els.accountSelect.innerHTML = accounts.map((a,i)=>`<option value="${i}">${a.number} (\u20B9${a.getBalance()})</option>`).join('')
+      els.transferTo.innerHTML = accounts.map((a,i)=>`<option value="${i}">${a.number} (\u20B9${a.getBalance()})</option>`).join('')
+
+      // balances display
+      els.balances.innerHTML = accounts.map(a=>`<div class="balance-box"><strong>${a.number}</strong><div class="small">Balance</div><div>\u20B9${a.getBalance()}</div></div>`).join('')
+    }
+
+    function appendNotification(text){
+      const node = document.createElement('div'); node.className='note'; node.textContent = `[${new Date().toLocaleTimeString()}] ${text}`
+      els.notifications.prepend(node)
+      // also console
+      console.log('NOTIFY:', text)
+      refreshUI()
+    }
+
+    function logCmd(text){ const p = document.createElement('div'); p.textContent = text; els.cmdLog.prepend(p) }
+
+    // Event handlers
+    els.createAccBtn.addEventListener('click', ()=> createAccount())
+
+    els.addCustBtn.addEventListener('click', ()=>{
+      const name = els.custName.value.trim()
+      if(!name) return alert('Enter a customer name')
+      const c = new Customer(name)
+      customers.push(c)
+      // subscribe to all existing accounts for demo
+      accounts.forEach(a=>a.addObserver(c))
+      appendNotification(`Customer ${name} created and subscribed to all accounts.`)
+      els.custName.value = ''
+    })
+
+    els.depositBtn.addEventListener('click', ()=>{
+      const acc = accounts[Number(els.accountSelect.value)]
+      const amt = Number(els.amountInput.value)
+      if(!acc || !amt) return
+      CommandManager.execute(new DepositCommand(acc, amt))
+    })
+
+    els.withdrawBtn.addEventListener('click', ()=>{
+      const acc = accounts[Number(els.accountSelect.value)]
+      const amt = Number(els.amountInput.value)
+      if(!acc || !amt) return
+      CommandManager.execute(new WithdrawCommand(acc, amt))
+    })
+
+    els.transferBtn.addEventListener('click', ()=>{
+      const from = accounts[Number(els.accountSelect.value)]
+      const to = accounts[Number(els.transferTo.value)]
+      const amt = Number(els.amountInput.value)
+      if(!from || !to || from === to || !amt) return alert('Select two different accounts and valid amount')
+      CommandManager.execute(new TransferCommand(from,to,amt))
+    })
+
+    els.undoBtn.addEventListener('click', ()=> CommandManager.undo())
+
+    els.calcInterestBtn.addEventListener('click', ()=>{
+      const acc = accounts[Number(els.accountSelect.value)]
+      if(!acc) return
+      const interest = acc.calculateInterest()
+      appendNotification(`Interest for ${acc.number}: \u20B9${interest.toFixed(2)}`)
+    })
+
+    // create two default accounts for demo
+    (function seed(){
+      const a = new SavingsAccount('SAV_1001', 1500)
+      const b = new FDAccount('FD_1002', 5000)
+      accounts.push(a,b)
+      refreshUI()
+    })()
+
+  </script>
+</body>
+</html>
